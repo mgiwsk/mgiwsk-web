@@ -1,0 +1,213 @@
+<!DOCTYPE html><html><head>
+	<title>Interactive Mapping</title>
+	<meta charset="utf-8">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css">	
+	<script src="leaflet.js"></script>
+  
+	<script src="jquery-3.3.1.min.js"></script>	
+	
+</head>
+<body>
+
+  <div id="mapid" style="width: 600px; height: 400px;"></div>
+
+
+  <div id="controls" style="margin: 15px;">
+    <button id="showAllPlantsButton">Show All Energy Plants</button>
+
+    <span style="display:inline-block; width: 30px"></span>
+    <input type="text" id="highlightPlantTextEntry" placeholder="Source">
+    <button id="highlightPlantButton">Highlight</button>
+    
+	</div>
+
+  <script>
+    
+    
+    var map = L.map('mapid',
+                    { 
+      								center: [47.960, -110.581],
+      								zoom: 3
+    								}  
+              );
+    
+		var topoTiles = L.tileLayer(
+      								'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                      {
+												maxZoom: 18,
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+												subdomains: 'abcd'
+												}
+										).addTo(map);
+    
+    var plantMarkerOptions = {
+    	radius: 2,
+    	fillColor: "#e0e2e1",
+    	color: "#e3e5e4",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.3
+		};
+    
+     var plantMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#1765d8",  
+    	color: "#000",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    var windMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#5ef1ff",  
+    	color: "#31b9c6",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    var hydroMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#54ffa6",  
+    	color: "#2ac173",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    var biomassMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#83ff30",  
+    	color: "#54bc0f",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    var pumpMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#cb6bff",  
+    	color: "#8b1bc6",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    var solarMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#ffdd35",  
+    	color: "#ceab00",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    var geoMarkerHighlightedOptions = {
+    	radius: 2,
+    	fillColor: "#ff3f62",  
+    	color: "#d81539",
+    	weight: 1,
+    	opacity: 0.1,
+    	fillOpacity: 0.5
+		};
+    
+    
+    function onEachPlant(feature, layer) {
+       if (feature.properties && feature.properties.PrimSource) {
+          layer.bindTooltip(feature.properties.PrimSource);
+       }
+    }
+    
+     function plantPointToLayer(feature, latlng) {
+
+      if (plantToHighlight === "") {
+        plantMarkerOptionsToUse = plantMarkerOptions;
+      } else if (plantToHighlight === "wind") {
+        plantMarkerOptionsToUse = windMarkerHighlightedOptions;
+      } else if (plantToHighlight === "hydroelectric") {
+        plantMarkerOptionsToUse = hydroMarkerHighlightedOptions;
+      } else if (plantToHighlight === "solar") {
+        plantMarkerOptionsToUse = solarMarkerHighlightedOptions;
+      } else if (plantToHighlight === "geothermal") {
+        plantMarkerOptionsToUse = geoMarkerHighlightedOptions;
+      } else if (plantToHighlight === "pumped storage") {
+        plantMarkerOptionsToUse = pumpMarkerHighlightedOptions;
+      } else if (plantToHighlight === "biomass") {
+        plantMarkerOptionsToUse = biomassMarkerHighlightedOptions;
+      } 
+      
+     
+      return L.circleMarker(
+        latlng,
+        plantMarkerOptionsToUse
+      );
+    }
+    
+    function plantToFilter (feature, layer) {
+      if(plantToHighlight === "") {
+        return true;
+    
+      }
+      else if (feature.properties && feature.properties.PrimSource) { 
+  
+        return plantToHighlight.toLowerCase() === feature.properties.PrimSource.toLowerCase();
+			
+      } else {
+        return false;
+       
+      }
+    }
+    
+ 		var lastLayerAdded = {};
+ 
+    
+    function addPlant() {
+      if(map.hasLayer(lastLayerAdded)){  
+        map.removeLayer(lastLayerAdded);
+      }
+      lastLayerAdded = L.geoJSON(plantGeoJSONdata, {
+   												pointToLayer: plantPointToLayer,
+                 				  onEachFeature: onEachPlant,
+          								filter: plantToFilter
+        										
+      									 }
+                       );
+      lastLayerAdded.addTo(map);
+    };
+    
+    var plantToHighlight = "";
+   
+        
+    function highlightPlant() {     
+    	plantToHighlight = document
+    												.getElementById("highlightPlantTextEntry")
+      											.value;     
+      addPlant(); 
+      plantToHighlight = "";  
+    }
+
+    var plantGeoJSONdata; 
+    
+           
+		$.getJSON("https://raw.githubusercontent.com/mgiwsk/mgiwsk-web/master/Lab2/US_Power_Plants.geojson",    					
+              function(data){
+			      		plantGeoJSONdata = data;
+								document
+                  .getElementById("showAllPlantsButton")
+                  .addEventListener("click", addPlant);
+      					document
+                  .getElementById("highlightPlantButton")
+                  .addEventListener("click", highlightPlant);
+      
+    					}
+    );
+    
+    
+ 
+ 	   
+  </script>
+
+
+</body></html>
